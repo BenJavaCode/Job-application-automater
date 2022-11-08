@@ -3,7 +3,7 @@ GEOGRAPHIES = ['Storkøbenhavn', 'Nordsjælland', 'Sjælland', 'Fyn',
                'Nordjylland','Midtjylland','Sydjylland', 'Bornholm',
                'Skåne', 'Grønland','Færøerne','Udlandet','Danmark']
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "your-oenai-key"
 
 
 
@@ -15,7 +15,7 @@ class Config:
     SECRET_KEY = 'bitch'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     username = 'root'
-    password = '#Ia777138xq#'
+    password = 'your-password'
 
     @property
     def SQLALCHEMY_DATABASE_URI(self):  # Note: all caps
