@@ -5,7 +5,7 @@ The app lets an user automate the job process by letting them scrape jobsites ba
 It also lets users create cover letters from simple skill and motivation descrptions combined with an job description.
 The cover letter returned by the application is in English aswell as a language specified by the user.
 
-ERD diagram: ![image](documentation\Entity relationship diagram.png) 
+ERD diagram: ![image](cover_letter_app/documentation/Entity relationship diagram.png) 
 
 If you are interested in the project, please let me know, as I may continue development then.
 
