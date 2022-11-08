@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+  <!--AJAX -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+  <!-- CSS only -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+
+
+  <!-- Font Awesome -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    rel="stylesheet"
+  />
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+    rel="stylesheet"
+  />
+  <!-- MDB -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/5.0.0/mdb.min.css"
+    rel="stylesheet"
+  />
+
+
+
+  <title>{%block title %} billybob {% endblock %}</title>
+
+
+</head>
+
+
+
+<body>
+
+
+  <!-- On Asynchronous calls this will be populated with message -->
+  <div id="ajax_flash_messages" style='position:fixed; top:0; width:100%; z-index:100;'></div>
+
+
+<!-- On native flask flash -->
+  
+  {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      {% if category == "error" %}
+        <div class="alert alert-danger alter-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div class="alert alert-danger alter-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% else %}
+        <div class="alert alert-success alter-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endif %}
+
+      {% endfor %}
+    {% endif %}
+  {% endwith %} 
+
+
+
+
+  <!-- Navbar--> 
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark" style='margin-bottom:2.5rem;'>
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <img src="https://icon-library.com/images/machine-learning-icon/machine-learning-icon-28.jpg" style="width:50px; height:auto">
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+
+          {%if not current_user.is_authenticated%}
+          <li class="nav-item">
+            <a class="nav-link active" href="/login">Login</a>
+          </li>
+          {%endif%}
+
+          {% if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="/logout">Logout</a>
+          </li>
+          {%endif%}
+
+          {%if not current_user.is_authenticated%}
+          <li class="nav-item">
+            <a class="nav-link" href="/sign-up">Sign-up</a>
+          </li>
+          {%endif%}
+
+          {%if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href='/queries'>Queries</a>
+          </li>
+          {%endif%}
+
+          {%if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href='/scraping'>Get Jobpost's </a>
+          </li>
+          {%endif%}
+
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+
+
+  <!-- Content -->
+  {%block content %} {% endblock %}
+
+
+
+  <!-- Footer -->
+  <footer class="bg-dark text-center text-white" style="margin-top:2.5rem;">
+    <!-- Copyright -->
+    <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
+      © 2020 Copyright: Dataskjold/Benjamin Lundquist Thomsen
+      <!-- Github -->
+      <a class="btn btn-outline-light btn-floating m-1" href="https://github.com/BenJavaCode" role="button" target="_blank"
+        ><i class="fab fa-github"></i
+      ></a>
+    </div>
+    <!-- Copyright -->
+  </footer>
+
+
+<!-- JavaScript Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8" crossorigin="anonymous"></script>
+
+<!-- MDB -->
+<script
+  type="text/javascript"
+  src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/5.0.0/mdb.min.js"
+></script>
+
+<!--csrf token for aynchronous calls-->
+<script> 
+  var csrf_token = "{{ csrf_token() }}";
+</script>
+
+<!-- Javascript function for handling messages on asyncronous calls-->
+<script>
+
+  function flashMessage(message_category, message_text){
+    var html = '';
+    var alert_button = '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    var type = '';
+    // conversion from flash message string e.g (error or success) to bootstrap alert class string
+    if (message_category == 'error'){
+      type = 'danger';
+    }
+    else{
+      type = 'success';
+    }
+    html = '<div class="alert alert-' + type + ' alter-dismissible fade show" role="alert">' + message_text + alert_button + '</div>';
+    document.getElementById('ajax_flash_messages').innerHTML = html;
+
+  };
+
+</script>
+
+
+
+</body>
+</html>
