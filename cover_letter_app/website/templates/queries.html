@@ -1,0 +1,357 @@
+{%extends 'base.html'%}
+
+{%block title %}
+{{user.username}}'s Account
+{% endblock %}
+
+
+
+{%block content %}
+<div class="container py-5" >
+
+
+    <!-- Select or Create -->
+    <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4 mb-md-0">
+            <div class="card-header">Select Query<span id='para_sel_type'></span> <span>to edit</span></div>
+                <div class="card-body">
+                <form method='POST' action='/get_query_data' id='query_selector_form_id'>
+                        {{query_selector_form.options(id="query_option_id", class="form-select")}}
+                </form> 
+                </div>
+          </div>
+        </div>
+    </div>
+
+    
+    <form method='POST' action='/update_or_create_query' id='update_or_create_query_form_id'>
+        {{create_query_form.csrf_token()}}
+        {{create_query_form.scrapingquery_id(id="scrapingquery_id")}}
+        <!-- Motivations and Skills -->
+        <div class="row">
+            <div class="col-md-6">
+            <div class="card mb-4 mb-md-0">
+                <div class="card-header"> Query Name </div>
+                    <div class="card-body">
+                        {{create_query_form.name.label(class="form-label")}}
+                        {{create_query_form.name(id="create_query_form_name_id")}}
+                    </div>
+            </div>
+            </div>
+            <div class="col-md-6">
+            <div class="card mb-4 mb-md-0">
+                <div class="card-header">Maximun age </div>
+                <div class="card-body">
+                        <div class="mb-3">
+                            {{create_query_form.age.label(class="form-label")}}
+                            {{create_query_form.age(id="create_query_form_age_id")}}
+                        </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+            <div class="card mb-4 mb-md-0">
+                <div class="card-header"> Category (Optional)</div>
+                    <div class="card-body">
+                        {{create_query_form.category.label(class="form-label")}}
+                        {{create_query_form.category(id="create_query_form_category_id")}}
+                    </div>
+            </div>
+            </div>
+            <div class="col-md-6">
+            <div class="card mb-4 mb-md-0">
+                <div class="card-header"> Areas </div>
+                <div class="card-body">
+                        <div class="mb-3">
+                            {{create_query_form.geographies.label(class="form-label")}}
+                            {{create_query_form.geographies(id="create_query_form_geographies_id")}}
+                        </div>
+                </div>
+            </div>
+            </div>
+        </div>        
+
+        <div class="card mb-4">
+            <div class="card-header">Criterias</div>
+            <div class="card-body">
+                {{create_query_form.criterias(id='criterias_id')}}
+            </div>
+        </div>
+
+
+    </form>
+
+    <div class="row">
+        <div class="col-md-6">
+
+            <div class="card mb-4">
+                <div class="card-header">Criterias</div>
+                <div class="card-body">
+                    <form id='add_criteria_form_id'>
+                        <label>Text of criteria that job will be filtered by</label>
+                        <input id='add_criteria_form_input_id' class='form-control'> </input>
+                        <button class="btn btn-primary" type='button' id='add_criteria_form_button_id'>Add</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body" id='criteria_container' name='criteria_container'>
+
+        <!-- Container for competencies..-->
+         
+    </div>
+
+    <button class="btn btn-primary" id='create_query_form_button' type="button">Save Query</button>
+
+
+</div>
+
+
+
+<script>
+
+
+    // Actions that will invoke a async response 
+    const actions = ['/get_query_data'];   
+    // id used for deleting/controling lifetime of criterias. Is incremented negatively.
+    var moving_id;
+
+    // This function controls what will happen when a form is submitted.
+    function form_controller(){
+        $(document).on('submit', 'form', function(e) {
+
+            var url = $(this).attr("action"); // send the form data here.
+            alert(url)
+
+            if (actions.includes(url)){
+                // Checks before in some cases?
+                e.preventDefault(); 
+                
+                $.ajax({
+
+                    type: "POST",
+                    url: url,
+                    data: $('#' + $(this).attr('id')).serialize(),
+                    
+                    success: function (data) {
+
+                        if (data['message']['category'] == 'error'){
+                            // Its an error so dont do annything with the return stuff
+                        }
+                        
+                        else if (url == '/get_query_data'){
+                            if (data['payload'] == -1){
+                                clear_form_fields();
+                            }
+                            else{
+                                fill_in_query_data(data['payload']);
+                            }
+                        } 
+
+                        // Flash message if message has text
+                        if (data['message']['message_text'] != ''){
+                            flashMessage(message_category=data['message']['category'], message_text=data['message']['message_text']); 
+                        }
+                        
+                    },
+                    error: function (data){
+                        // handle error
+                        alert('Some error occured, try again later')
+                    }
+                });
+            }
+        });
+
+        // Manually attach csrf token on async requests.
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrf_token);
+                }
+            }
+        });
+    }
+
+    //Submits a form by id.
+    function request_submit(elem_id){
+        document.getElementById(elem_id).requestSubmit();
+    };
+
+    // Establish listeners and does stuff once everything is ready.
+    window.addEventListener("load", function() {
+        
+        moving_id = -1;
+        
+        // Sets up form controler
+        form_controller();
+
+
+        // When user chooses existing query, or new query
+        document.getElementById("query_option_id").onchange = function() {
+            clear_criteria_box();  //Always clear criterias
+            request_submit("query_selector_form_id") 
+        }
+
+        //When user saves query
+        document.getElementById("create_query_form_button").onclick = function(){
+            insert_criteria_into_form();
+            request_submit("update_or_create_query_form_id")
+            // Remove all from criterias if not succesfull submit
+            document.getElementById("criterias_id").value = '';
+
+        }
+
+        //When user adds criteria to query
+        document.getElementById("add_criteria_form_button_id").onclick = function(){
+
+            let text = document.getElementById('add_criteria_form_input_id').value
+            
+            //add_criteria(text, moving_id); the regex is for testing if string empty or only contains spaces.
+            if ((text.length != 0) && !(/^\s*$/.test(text)) ){
+                add_to_criteria_box(text, moving_id);
+                moving_id -= 1;
+            }
+            document.getElementById('add_criteria_form_input_id').value = ''
+        }
+
+    });
+
+    //Fill in form fields with form data from persistence
+    function fill_in_query_data(data){
+        document.getElementById("scrapingquery_id").value = data['id']
+        document.getElementById("create_query_form_name_id").value = data['name']
+        document.getElementById("create_query_form_age_id").value = data['age']
+
+        document.getElementById("create_query_form_category_id").value=data['category'];
+        //categories_list.getElementById("category-0").radiobtn.checked = true;
+
+        let categories = document.getElementById('create_query_form_geographies_id').children
+        for (let i = 0; i < data['geographies'].length; i++){
+
+            categories[data['geographies'][i]-1].children[0].checked = true;
+
+        }
+
+        for (let i = 0; i<data['criterias'].length; i++){
+            alert(data['criterias'][i])
+            add_to_criteria_box(data['criterias'][i], moving_id);
+            moving_id -= 1;
+        }
+
+    };
+
+    // Clear form fields.
+    function clear_form_fields(){
+        document.getElementById("scrapingquery_id").value = -1;
+        document.getElementById("create_query_form_name_id").value = '';
+        document.getElementById("create_query_form_age_id").value = -1;
+        document.getElementById("create_query_form_category_id").value = -1;
+        document.getElementById("create_query_form_geographies_id").values = '';
+        let categories = document.getElementById('create_query_form_geographies_id').children
+        for (let i = 0; i < categories.length; i++){
+            categories[i].children[0].checked = false;
+        }
+        //document.getElementById("criterias_id").value = data['criterias'] this should be the visual part
+    };
+
+    //Insert into form field 'criterias' from criteria_container
+    function insert_criteria_into_form(){
+        
+        let criterias = document.getElementById('criterias_id') 
+
+        let criteria_container = document.getElementById("criteria_container");
+
+        let paras = criteria_container.getElementsByTagName('p');
+        criterias.value =  paras[0].innerText;
+        for (let i = 1; i<paras.length; i++){
+
+            criterias.value =  criterias.value + ',' + paras[i].innerText;
+        }        
+
+    };
+
+
+    // Adds criteria to visual field, so that user may see it and deletede it. 
+    function add_to_criteria_box(text, moving_id){
+
+        //first remove any commas as these are used as control characters..
+        text = text.replace(',', '')
+
+        element_injection_factory(
+            document.getElementById('criteria_container'),
+            ['form', 'div', 'p', 'button'],
+            ['r', 0, 1, 1],
+
+            [[['id', 'delete_object'+moving_id]],
+            [['class','btn-group']], 
+            [[]], 
+            [['class', 'btn btn-danger'], ['type', 'button'], ['onclick', 'delete_competence()'], ['id', moving_id]]
+            ],
+
+            [0, 0, text, 'X']
+        );
+        
+    };
+
+    // Clear criteria box, Function is just for better readablity when this action is used.
+    function clear_criteria_box(){
+        document.getElementById('criteria_container').innerHTML = '';
+    }
+
+    
+    function delete_competence(){
+        $(document).on('click', 'button', function(){ 
+            //REMOVE FROM Criteria container(Visisble)
+            var parent_container = document.getElementById('criteria_container');
+            var child = document.getElementById('delete_object'+this.id)
+            parent_container.removeChild(child);            
+        });
+        
+    };
+
+    // Creates complex HTML templates based on specified structure.
+    function element_injection_factory(target, elem_list, elem_nesting, elem_attributes, elem_content){
+        // Target = place in the dom the elements will be placed. List 
+        // elem_list = list of the element 'names' e.g 'div', 'p'. List
+        // elem_nesting is the relative nesting of the elements. List
+        // elem_attributes is the attributes of each element. List[elem_list.length, number_of_attributes_of_lement, 2]
+        // where the last dimension values corresponds to attribute name, attribute value.
+        //elem_content is the content of the element. List
+        html_elems = [];
+        for (let i = 0; i < elem_list.length; i++){
+            //build element
+            //add element in order of index
+            var elem = document.createElement(elem_list[i])
+
+            for (let j = 0; j < elem_attributes[i].length; j++){
+                elem.setAttribute(elem_attributes[i][j][0], elem_attributes[i][j][1])
+            }
+            if (elem_content[i] != 0){
+                elem.textContent = elem_content[i];
+            }
+            html_elems.push(elem); 
+        }
+        for (let i = 0; i < html_elems.length; i++){
+            if (elem_nesting[i] == 'r'){
+                target.appendChild(html_elems[i]);
+            }
+            else{
+                html_elems[elem_nesting[i]].appendChild(html_elems[i]);
+            }
+        }
+    };
+
+
+
+
+</script>
+{% endblock %}
+
+
+

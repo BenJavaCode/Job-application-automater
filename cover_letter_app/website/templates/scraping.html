@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{%block title %} {% endblock %}
+{%block content %} 
+
+
+
+<!-- Select query -->
+<!-- Scrape -->
+<!-- Link(content) visualisation?-->
+<!-- Remove link(s)-->
+
+<div class="container py-5" >
+
+
+    <!-- Select or Create -->
+
+    <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4 mb-md-0">
+            <div class="card-header">Select Query<span id='para_sel_type'></span> <span>to edit</span></div>
+                <div class="card-body">
+                <form method='POST' action='/scraping' id='query_selector_form_id'>
+                        {{query_selector_form.csrf_token()}}
+                        {{query_selector_form.options(id="query_option_id", class="form-select")}}
+                        <br>
+                        <button class="btn btn-primary" type="submit">Execute query</button>
+                </form> 
+                </div>
+          </div>
+        </div>
+    </div>
+
+    <!--Jobposts-->
+    <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4 mb-md-0">
+            <h3> Number of Jobposts: {{number_jobposts}} </h3>
+            <div class="card-header"></div>
+                <div class="card-body">
+                    {% for jobpost in jobposts %}
+                        <form method="POST" action="/discard_jobpost" id='jobpost_id_{{jobpost['id']}}'>
+                            {{remove_jobpost_form.csrf_token()}}
+                            <div id="jobpost_name"><h5>{{ jobpost['unique_identifier'] }}</h5></div>  
+                            <div id="jobpost_url"><a href={{ jobpost['url'] }} target="_blank">{{ jobpost['url'] }}</a></div> 
+                            {{remove_jobpost_form.jobpost_id(value=jobpost['id'])}}
+                            
+                            <button class="btn btn-primary" type="submit">Discard jobpost</button>
+                        </form>
+                        <br>
+                    {% endfor %}
+                    
+                </div>
+          </div>
+        </div>
+
+        <!--Create prompt-->
+        <div class="col-md-6">
+            <div class="card mb-4 mb-md-0">
+                <h4>Create prompt</h4>
+                    <div class="card-body">
+                      <form method="POST" action="/create_prompt" id='create_prompt_form'>
+                        {{create_prompt_form.csrf_token()}}
+
+                        {{create_prompt_form.job_info.label(class="small mb-1")}}
+                        {{create_prompt_form.job_info(class="form-control", rows=30)}}
+                        
+                        <h6>Motivationset</h6>
+                        {{create_prompt_form.motivationset_selector(class="form-select")}}
+                    
+                        
+                        <h6>Skillset</h6>
+                        {{create_prompt_form.skillset_selector(class="form-select")}}
+                    
+                        <button class="btn btn-primary" type="submit">Gennerate prompt</button>
+                      </form>
+                    </div>
+            </div>
+
+            <!--Cover letter generator input parameters-->
+            <div class="card mb-4 mb-md-0">
+                <h4>Prompt and parameters</h4>
+                    <div class="card-body">
+                        <form method='POST' action='/create_cl' id='cover_letter_generator_form'>
+                            {{create_cl_form.csrf_token()}}
+                            <!--Temperature-->
+                            {{create_cl_form.temperature.label(class="small mb-1")}}
+                            {{create_cl_form.temperature(class="form-control")}}
+                            <!--Top_p-->
+                            {{create_cl_form.top_p.label(class="small mb-1")}}
+                            {{create_cl_form.top_p(class="form-control")}}
+                            <!--frequency_penalty-->
+                            {{create_cl_form.frequency_penalty.label(class="small mb-1")}}
+                            {{create_cl_form.frequency_penalty(class="form-control")}}
+                            <!--presence_penalty-->
+                            {{create_cl_form.presence_penalty.label(class="small mb-1")}}
+                            {{create_cl_form.presence_penalty(class="form-control")}}
+                            <!--Prompt-->
+                            <h5>Prompt</h5>
+                            {{create_cl_form.prompt(class="form-control", id="create_cl_prompt", rows=30 )}}
+                            <button class="btn btn-primary" type="submit">Create Cover letters</button>
+                        </form>
+                    </div>
+            </div>
+
+            <!--Cover letter containers-->
+            <div class="card mb-4 mb-md-0">
+                <h4>Your cover letters</h4>
+                    <div class="card-body">
+                        <h5>Danish Cover letter</h5>
+                        <textarea class="form-control" id="danish_cover_letter" rows="30"></textarea>
+                        <br>
+                        <h5>English Cover letter</h5>
+                        <textarea class="form-control" id="english_cover_letter" rows="30"></textarea>
+                    </div>
+            </div>  
+        
+        </div>
+   
+    </div>
+
+<div>
+
+
+
+<script>
+
+
+    // Actions that will invoke an async response 
+    const actions = ['/discard_jobpost', '/create_prompt', '/create_cl']   
+
+    // This function controls what will happen when a form is submitted.
+    function form_controller(){
+        $(document).on('submit', 'form', function(e) {
+
+            var url = $(this).attr("action"); // send the form data here.
+            alert(url)
+
+            if (actions.includes(url)){
+                e.preventDefault(); 
+                
+                $.ajax({
+
+                    type: "POST",
+                    url: url,
+                    data: $('#' + $(this).attr('id')).serialize(),
+
+                    success: function (data) {
+                        if (data['message']['category'] == 'error'){
+                            // Its an error so dont do annything with the return stuff
+                        }
+                        else if (url == '/discard_jobpost'){
+                            remove_jobpost(data['payload']);
+                        } 
+                        else if (url == '/create_prompt'){
+                            place_prompt_string_into_create_cl_prompt_input(data['payload']);
+                        }
+                        else if (url == '/create_cl'){
+                            put_cover_letter_into_inputs(data['payload']);
+                        }
+
+                        // Flash message if message has text
+                        if (data['message']['message_text'] != ''){
+                            flashMessage(message_category=data['message']['category'], message_text=data['message']['message_text']); 
+                        }
+                    },
+                    error: function (data){
+                        // handle error
+                        alert('Some error occured, try again later')
+                    }
+                });
+            }
+        });
+
+        // Manually attach csrf token on async requests.
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrf_token);
+                }
+            }
+        });
+    };
+
+
+    // Establish listeners and does stuff once everything is ready.
+    window.addEventListener("load", function() {
+
+        // Sets up form controler
+        form_controller();
+
+    });
+
+    function remove_jobpost(jobpost_id){
+        //Delete successfull
+        var jobpost_form = document.getElementById(''.concat('jobpost_id_',jobpost_id));
+        jobpost_form.parentNode.removeChild(jobpost_form);
+    };
+
+    function place_prompt_string_into_create_cl_prompt_input(prompt_string){
+        //prompt created successfully
+        var create_cl_prompt = document.getElementById('create_cl_prompt')
+        create_cl_prompt.value = prompt_string
+    };
+
+    function put_cover_letter_into_inputs(cover_letters){
+        //Cover letter successfully gennerated and danish successfully translated to danish
+        var english_cover_letter_input = document.getElementById('english_cover_letter')
+        var danish_cover_letter_input = document.getElementById('danish_cover_letter')
+
+        //Place into inputs 
+        english_cover_letter_input.value = cover_letters[0]
+        danish_cover_letter_input.value = cover_letters[1]
+    };
+
+
+
+
+</script>
+
+{% endblock %}
