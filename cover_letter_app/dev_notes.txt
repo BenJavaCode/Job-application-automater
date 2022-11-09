@@ -1,8 +1,0 @@
-TODO: 
-    1: Create test suite..
-    2: Expand webscraper package to include other big companies.
-    3: Penetration testing
-    4: Better commenting and possible more thorough documentation
-    5: Clean up frontend
-    6: Deploy on heroku, if anyone shows interest.
-    
