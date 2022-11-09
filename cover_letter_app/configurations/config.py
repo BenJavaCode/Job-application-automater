@@ -12,9 +12,9 @@ class Config:
     TESTING = False
     DB_SERVER = 'localhost'
     DB_NAME = DB_NAME
-    SECRET_KEY = 'bitch'
+    SECRET_KEY = 'your-secret-key'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    username = 'root'
+    username = 'username'
     password = 'password'
 
     @property
